@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>"><link rel="stylesheet" href="css/style.css">
+<title>EcoPlate – Recettes</title></head>
+<body>
+<header id="nav"></header>
+<main class="wide">
+  <div class="pagehead"><h2>Recettes adaptées à mes aliments</h2><p>EcoPlate compare les recettes de la plateforme avec les aliments disponibles dans votre compte.</p></div>
+  <p class="note recipe-priority">Les recettes sont triées par pourcentage d’ingrédients disponibles. À pourcentage égal, celles qui utilisent des aliments arrivant à échéance dans les 3 prochains jours passent en premier.</p>
+  <div class="toolbar">
+    <button class="btn" id="match" type="button">Afficher les recettes réalisables uniquement</button>
+    <button class="btn alt" id="all" type="button" hidden>Afficher toutes les recettes</button>
+    <span id="info"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+<footer id="footer"></footer>
+<script src="js/common.js"></script>
+<script src="js/recipes.js"></script>
+</body></html>

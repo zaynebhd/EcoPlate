@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css">
+<title>EcoPlate – Espace organisation</title></head>
+<body>
+<header id="nav"></header>
+<main class="wide">
+  <div class="pagehead"><h2>Espace organisation</h2><p>Publiez vos surplus et gérez vos annonces.</p></div>
+  <div class="card">
+    <h3 id="announcementFormTitle">Publier une annonce</h3>
+    <form id="announcementForm" class="announcement-form">
+      <div class="field"><label for="foodName">Aliment</label><input id="foodName" maxlength="100" required></div>
+      <div class="field"><label for="quantityTotal">Quantité en excès</label><input id="quantityTotal" type="number" min="1" step="1" required></div>
+      <div class="field"><label for="normalPrice">Prix normal (€)</label><input id="normalPrice" type="number" min="0" step="0.01" required></div>
+      <div class="field"><label for="reducedPrice">Prix réduit (€)</label><input id="reducedPrice" type="number" min="0" step="0.01" required></div>
+      <div class="field"><label for="deadline">Date limite</label><input id="deadline" type="date" required></div>
+      <div class="field field-wide"><label for="description">Description</label><textarea id="description" maxlength="2000" rows="3" placeholder="Précisez les conditions de retrait, si nécessaire."></textarea></div>
+      <div class="form-actions field-wide">
+        <button class="btn" id="submitAnnouncement" type="submit">Publier l’annonce</button>
+        <button class="btn alt" id="cancelEdit" type="button" hidden>Annuler la modification</button>
+      </div>
+      <p class="msg field-wide" id="announcementMessage" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+  <section class="card announcements-section">
+    <div class="listhead"><h3>Mes annonces</h3><span id="announcementCount"></span></div>
+    <div class="announcement-list" id="announcementList" aria-live="polite"></div>
+  </section>
+</main>
+<footer id="footer"></footer>
+<script src="js/common.js"></script>
+<script src="js/organization.js"></script>
+</body></html>

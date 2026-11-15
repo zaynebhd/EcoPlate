@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>"><link rel="stylesheet" href="css/style.css">
+<title>EcoPlate – Mes aliments</title></head>
+<body>
+<header id="nav"></header>
+<main>
+  <div class="pagehead"><h2>Mes aliments</h2><p>Ajoutez ce que vous avez chez vous et gardez un œil sur les dates.</p></div>
+
+  <div class="card">
+    <form id="form" class="form-row">
+      <div><label for="nom">Aliment</label><input id="nom" maxlength="100" placeholder="Ex. : tomates" required></div>
+      <div><label for="quantite">Quantité</label><input id="quantite" type="number" min="1" placeholder="Ex. : 3" required></div>
+      <div><label for="date">Date de péremption</label><input id="date" type="date" required></div>
+      <button class="btn" type="submit">Ajouter</button>
+    </form>
+    <p id="msg" class="msg" role="status"></p>
+  </div>
+
+  <div class="card">
+    <div class="listhead"><h2>Dans mon frigo</h2><span id="resume"></span></div>
+    <ul class="items" id="list"></ul>
+  </div>
+</main>
+<footer id="footer"></footer>
+<script src="js/common.js"></script>
+<script src="js/food.js"></script>
+</body></html>

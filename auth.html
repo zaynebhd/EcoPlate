@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css">
+<title>EcoPlate – Connexion et inscription</title></head>
+<body>
+<header id="nav"></header>
+<main class="auth-wrap">
+  <div class="pagehead">
+    <h2 id="roleTitle">Votre compte EcoPlate</h2>
+    <p id="roleDescription"></p>
+    <a href="account-type.html">← Changer de type de compte</a>
+  </div>
+  <section class="card">
+    <div class="auth-tabs" role="tablist" aria-label="Connexion ou inscription">
+      <button class="btn small" type="button" data-mode="login" aria-selected="true">Connexion</button>
+      <button class="btn alt small" type="button" data-mode="register" aria-selected="false">Inscription</button>
+    </div>
+    <p id="authMessage" class="msg" role="status" aria-live="polite"></p>
+    <form id="loginForm">
+      <div class="field"><label for="loginEmail">Adresse courriel</label><input id="loginEmail" type="email" autocomplete="email" maxlength="254" required></div>
+      <div class="field"><label for="loginPassword">Mot de passe</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button class="btn" type="submit">Se connecter</button>
+    </form>
+    <form id="registerForm" hidden>
+      <div class="field"><label for="registerEmail">Adresse courriel</label><input id="registerEmail" type="email" autocomplete="email" maxlength="254" required></div>
+      <div class="field"><label for="registerPassword">Mot de passe (8 caractères minimum)</label><input id="registerPassword" type="password" autocomplete="new-password" minlength="8" maxlength="256" required></div>
+      <div id="organizationFields" hidden>
+        <div class="field"><label for="organizationName">Nom de l’organisation</label><input id="organizationName" maxlength="150" disabled></div>
+        <div class="field"><label for="organizationType">Type d’organisation</label>
+          <select id="organizationType" disabled>
+            <option value="">Choisir un type</option>
+            <option value="association">Association</option>
+            <option value="hotel">Hôtel</option>
+            <option value="restaurant">Restaurant</option>
+          </select>
+        </div>
+        <div class="field"><label for="organizationAddress">Adresse</label><input id="organizationAddress" maxlength="255" autocomplete="street-address" disabled></div>
+        <div class="field"><label for="organizationPhone">Téléphone</label><input id="organizationPhone" type="tel" maxlength="30" autocomplete="tel" disabled></div>
+      </div>
+      <button class="btn" type="submit">Créer mon compte</button>
+    </form>
+  </section>
+</main>
+<footer id="footer"></footer>
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+</body></html>
