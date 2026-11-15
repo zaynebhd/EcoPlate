@@ -36,7 +36,7 @@ const post = (url, body) => api(url, { method: 'POST', headers: {'Content-Type':
       const {user} = await api('/api/session');
       const page = location.pathname.split('/').pop() || 'index.html';
       const pages = user && user.role === 'organization'
-        ? [['organization-dashboard.html', 'Espace organisation']]
+        ? [['organization-dashboard.html', 'Espace organisation'], ['offers.html', 'Offres des autres organisations']]
         : user
           ? [['index.html', 'Accueil'], ['food.html', 'Mes aliments'], ['offers.html', 'Offres'], ['recipes.html', 'Recettes'], ['impact.html', 'Mon impact']]
           : [['account-type.html', 'Choisir un compte']];

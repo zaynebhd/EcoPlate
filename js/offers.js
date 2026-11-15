@@ -1,12 +1,13 @@
 const offerFilters = document.getElementById('offerFilters');
 const offerList = document.getElementById('offerList');
 const offerMessage = document.getElementById('offerMessage');
+let isOrganization = false;
 
 const offerStatusLabels = {active: 'Active', sold_out: 'Épuisée', expired: 'Expirée'};
 const offerOrganizationLabels = {association: 'Association', hotel: 'Hôtel', restaurant: 'Restaurant'};
 
 function renderOffer(item) {
-  const canReserve = item.status === 'active' && item.quantity_available > 0;
+  const canReserve = !isOrganization && item.status === 'active' && item.quantity_available > 0;
   return `<article class="announcement-card">
     <div class="announcement-heading">
       <div><h3>${esc(item.food_name)}</h3><span class="announcement-org">${esc(offerOrganizationLabels[item.organization_type] || item.organization_type)} · ${esc(item.organization_name)}</span></div>
@@ -17,6 +18,7 @@ function renderOffer(item) {
       <span>Disponible : <strong>${item.quantity_available}</strong></span>
       <span>Prix : <s>${Number(item.normal_price).toFixed(2)} €</s> <strong>${Number(item.reduced_price).toFixed(2)} €</strong></span>
       <span>Date limite : <strong>${formatDate(item.deadline)}</strong></span>
+      <span>Lieu : <strong>${esc(item.organization_address)}</strong></span>
     </div>
     ${canReserve ? `<form class="reserve-form" data-id="${item.id}">
       <label for="reserve-${item.id}">Quantité à réserver</label>
@@ -29,6 +31,13 @@ function renderOffer(item) {
 async function loadOffers() {
   offerList.innerHTML = '<p class="empty">Chargement des offres…</p>';
   try {
+    const {user} = await api('/api/session');
+    isOrganization = user && user.role === 'organization';
+    if (isOrganization) {
+      document.getElementById('offersTitle').textContent = 'Offres des autres organisations';
+      document.getElementById('offersDescription').textContent =
+        'Consultez les annonces publiées par les autres associations, hôtels et restaurants.';
+    }
     const params = new URLSearchParams(new FormData(offerFilters));
     const offers = await api('/api/announcements?' + params.toString());
     offerList.innerHTML = offers.length

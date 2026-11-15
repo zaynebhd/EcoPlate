@@ -1,6 +1,7 @@
 const role = new URLSearchParams(location.search).get('role');
 const roleTitle = document.getElementById('roleTitle');
 const roleDescription = document.getElementById('roleDescription');
+const individualFields = document.getElementById('individualFields');
 const organizationFields = document.getElementById('organizationFields');
 const message = document.getElementById('authMessage');
 const loginForm = document.getElementById('loginForm');
@@ -14,6 +15,11 @@ if (!['individual', 'organization'].includes(role)) {
   roleDescription.textContent = isOrganization
     ? 'Connectez-vous ou inscrivez votre association, hôtel ou restaurant.'
     : 'Connectez-vous ou inscrivez-vous pour gérer vos aliments.';
+  individualFields.hidden = isOrganization;
+  individualFields.querySelectorAll('input').forEach(field => {
+    field.disabled = isOrganization;
+    field.required = !isOrganization;
+  });
   organizationFields.hidden = !isOrganization;
   organizationFields.querySelectorAll('input, select').forEach(field => {
     field.disabled = !isOrganization;
@@ -71,7 +77,9 @@ registerForm.addEventListener('submit', async event => {
     email: document.getElementById('registerEmail').value,
     password: document.getElementById('registerPassword').value
   };
-  if (role === 'organization') {
+  if (role === 'individual') {
+    donnees.full_name = document.getElementById('fullName').value;
+  } else {
     donnees.name = document.getElementById('organizationName').value;
     donnees.organization_type = document.getElementById('organizationType').value;
     donnees.address = document.getElementById('organizationAddress').value;

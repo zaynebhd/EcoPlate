@@ -23,6 +23,9 @@
     <form id="registerForm" hidden>
       <div class="field"><label for="registerEmail">Adresse courriel</label><input id="registerEmail" type="email" autocomplete="email" maxlength="254" required></div>
       <div class="field"><label for="registerPassword">Mot de passe (8 caractères minimum)</label><input id="registerPassword" type="password" autocomplete="new-password" minlength="8" maxlength="256" required></div>
+      <div id="individualFields" hidden>
+        <div class="field"><label for="fullName">Nom complet</label><input id="fullName" maxlength="150" autocomplete="name" disabled></div>
+      </div>
       <div id="organizationFields" hidden>
         <div class="field"><label for="organizationName">Nom de l’organisation</label><input id="organizationName" maxlength="150" disabled></div>
         <div class="field"><label for="organizationType">Type d’organisation</label>

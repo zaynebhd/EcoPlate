@@ -7,10 +7,25 @@ USE ecoplate_db;
 CREATE TABLE IF NOT EXISTS users (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   email         VARCHAR(254) NOT NULL UNIQUE,
+  full_name     VARCHAR(150) NULL,
   password_hash VARCHAR(255) NOT NULL,
   role          ENUM('individual', 'organization') NOT NULL,
   created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4;
+
+-- Migration idempotente pour les bases déjà initialisées.
+SET @full_name_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'full_name'
+);
+SET @add_full_name = IF(
+  @full_name_exists = 0,
+  'ALTER TABLE users ADD COLUMN full_name VARCHAR(150) NULL AFTER email',
+  'SELECT 1'
+);
+PREPARE add_full_name_stmt FROM @add_full_name;
+EXECUTE add_full_name_stmt;
+DEALLOCATE PREPARE add_full_name_stmt;
 
 CREATE TABLE IF NOT EXISTS organizations (
   id                INT AUTO_INCREMENT PRIMARY KEY,

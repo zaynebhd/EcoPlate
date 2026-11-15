@@ -18,6 +18,7 @@ function showAnnouncementMessage(text, type) {
 
 function renderAnnouncement(item) {
   const reserved = item.quantity_total - item.quantity_available;
+  const reservations = item.reservations || [];
   return `<article class="announcement-card">
     <div class="announcement-heading">
       <div><h3>${esc(item.food_name)}</h3><span class="announcement-org">${esc(organizationLabels[item.organization_type] || item.organization_type)} · ${esc(item.organization_name)}</span></div>
@@ -30,6 +31,13 @@ function renderAnnouncement(item) {
       <span>Prix : <s>${Number(item.normal_price).toFixed(2)} €</s> <strong>${Number(item.reduced_price).toFixed(2)} €</strong></span>
       <span>Date limite : <strong>${formatDate(item.deadline)}</strong></span>
     </div>
+    <section class="reservation-section" aria-label="Réservations">
+      <h4>Réservations</h4>
+      ${reservations.length ? `<ul class="reservation-list">${reservations.map(reservation => `
+        <li><strong>${esc(reservation.reserver_name)}</strong>
+          <span>Quantité : ${reservation.quantity} · ${new Date(reservation.created_at).toLocaleString('fr-FR')}</span>
+        </li>`).join('')}</ul>` : '<p class="empty">Aucune réservation pour cette annonce.</p>'}
+    </section>
     <div class="announcement-actions">
       <button class="btn small" type="button" data-action="edit" data-id="${item.id}">Modifier</button>
       <button class="btn danger-ghost small" type="button" data-action="delete" data-id="${item.id}">Supprimer</button>

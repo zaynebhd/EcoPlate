@@ -59,11 +59,21 @@ def ensure_schema():
             CREATE TABLE IF NOT EXISTS users (
               id INT AUTO_INCREMENT PRIMARY KEY,
               email VARCHAR(254) NOT NULL UNIQUE,
+              full_name VARCHAR(150) NULL,
               password_hash VARCHAR(255) NOT NULL,
               role ENUM('individual', 'organization') NOT NULL,
               created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) CHARACTER SET utf8mb4
         """)
+        # Ajoute le nom aux bases déjà créées sans modifier les comptes existants.
+        cur.execute("""
+            SELECT COLUMN_NAME FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA=%s AND TABLE_NAME='users'
+        """, (DB['database'],))
+        user_columns = {row['COLUMN_NAME'] for row in cur.fetchall()}
+        if 'full_name' not in user_columns:
+            cur.execute("ALTER TABLE users ADD COLUMN full_name VARCHAR(150) NULL AFTER email")
+
         cur.execute("""
             CREATE TABLE IF NOT EXISTS organizations (
               id INT AUTO_INCREMENT PRIMARY KEY,
@@ -276,6 +286,7 @@ ANNOUNCEMENT_SELECT = """
            a.quantity_available, a.normal_price, a.reduced_price,
            a.deadline, a.description, a.created_at,
            o.name AS organization_name, o.organization_type,
+           o.address AS organization_address,
            CASE WHEN a.quantity_available = 0 THEN 'sold_out'
                 WHEN a.deadline < CURDATE() THEN 'expired'
                 ELSE 'active' END AS status
@@ -349,7 +360,15 @@ def register():
     if role not in ROLES:
         return jsonify(error='Le type de compte sélectionné est invalide.'), 400
 
+    # Seuls les nouveaux comptes individuels doivent fournir un nom complet.
     org = None
+    full_name = None
+    if role == 'individual':
+        name = data.get('full_name')
+        if not isinstance(name, str) or not name.strip() or len(name.strip()) > 150:
+            return jsonify(error='Veuillez saisir votre nom complet (150 caractères maximum).'), 400
+        full_name = name.strip()
+
     if role == 'organization':
         name = data.get('name')
         organization_type = data.get('organization_type')
@@ -372,8 +391,8 @@ def register():
     try:
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (email, password_hash, role) VALUES (%s, %s, %s)",
-                (email, generate_password_hash(password), role))
+                "INSERT INTO users (email, full_name, password_hash, role) VALUES (%s, %s, %s, %s)",
+                (email, full_name, generate_password_hash(password), role))
             user_id = cur.lastrowid
             if org:
                 cur.execute(
@@ -431,14 +450,15 @@ def files(filename):
         'food.html': 'individual',
         'recipes.html': 'individual',
         'impact.html': 'individual',
-        'offers.html': 'individual',
+        'offers.html': ('individual', 'organization'),
         'organization-dashboard.html': 'organization',
     }
     required_role = page_roles.get(filename)
     if required_role:
         if not user:
             return redirect(url_for('account_type'))
-        if user['role'] != required_role:
+        allowed_roles = required_role if isinstance(required_role, tuple) else (required_role,)
+        if user['role'] not in allowed_roles:
             return redirect('/' + destination_for(user))
     return send_from_directory(BASE, filename)
 
@@ -515,6 +535,28 @@ def organization_announcements():
         cur.execute(ANNOUNCEMENT_SELECT + " WHERE a.organization_id=%s ORDER BY a.created_at DESC",
                     (organization_id,))
         rows = cur.fetchall()
+        # Le filtre par organisation empêche de révéler les réservations d'autrui.
+        cur.execute("""
+            SELECT r.announcement_id,
+                   COALESCE(NULLIF(u.full_name, ''), u.email) AS reserver_name,
+                   r.quantity, r.created_at
+            FROM reservations r
+            JOIN announcements a ON a.id=r.announcement_id
+            JOIN users u ON u.id=r.user_id
+            WHERE a.organization_id=%s
+            ORDER BY r.created_at DESC
+        """, (organization_id,))
+        reservations = cur.fetchall()
+    reservations_by_announcement = {}
+    for reservation in reservations:
+        reservation['created_at'] = reservation['created_at'].isoformat()
+        reservations_by_announcement.setdefault(reservation['announcement_id'], []).append({
+            'reserver_name': reservation['reserver_name'],
+            'quantity': reservation['quantity'],
+            'created_at': reservation['created_at'],
+        })
+    for row in rows:
+        row['reservations'] = reservations_by_announcement.get(row['id'], [])
     return jsonify([serialize_announcement(row) for row in rows])
 
 
@@ -589,7 +631,7 @@ def delete_announcement(announcement_id):
 
 
 @app.route('/api/announcements', methods=['GET'])
-@role_required('individual')
+@login_required
 def available_announcements():
     search = request.args.get('q', '').strip()[:100]
     organization_type = request.args.get('organization_type', '')
@@ -598,18 +640,29 @@ def available_announcements():
         return jsonify(error='Type d’organisation invalide.'), 400
     if status not in ('active', 'sold_out', 'expired', 'all'):
         return jsonify(error='Filtre de statut invalide.'), 400
+    organization_filter = ''
+    params = [search, '%' + search + '%', organization_type, organization_type]
+    if current_user()['role'] == 'organization':
+        # Les particuliers voient toutes les offres, une organisation exclut les siennes.
+        with get_conn() as conn, conn.cursor() as cur:
+            organization_id = get_organization_id(cur)
+        if not organization_id:
+            return jsonify(error='Profil organisation introuvable.'), 403
+        organization_filter = "AND a.organization_id <> %s"
+        params.append(organization_id)
     query = ANNOUNCEMENT_SELECT + """
         WHERE (%s='' OR a.food_name LIKE %s)
           AND (%s='' OR o.organization_type=%s)
+          """ + organization_filter + """
           AND (%s='all' OR
                (CASE WHEN a.quantity_available = 0 THEN 'sold_out'
                      WHEN a.deadline < CURDATE() THEN 'expired'
                      ELSE 'active' END)=%s)
         ORDER BY (a.deadline < CURDATE()), a.deadline, a.reduced_price, a.created_at DESC
     """
-    pattern = '%' + search + '%'
+    params.extend([status, status])
     with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(query, (search, pattern, organization_type, organization_type, status, status))
+        cur.execute(query, params)
         rows = cur.fetchall()
     return jsonify([serialize_announcement(row) for row in rows])
 
