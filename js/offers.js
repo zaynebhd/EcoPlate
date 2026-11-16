@@ -7,7 +7,7 @@ const offerStatusLabels = {active: 'Active', sold_out: 'Épuisée', expired: 'Ex
 const offerOrganizationLabels = {association: 'Association', hotel: 'Hôtel', restaurant: 'Restaurant'};
 
 function renderOffer(item) {
-  const canReserve = !isOrganization && item.status === 'active' && item.quantity_available > 0;
+  const canReserve = item.status === 'active' && item.quantity_available > 0;
   return `<article class="announcement-card">
     <div class="announcement-heading">
       <div><h3>${esc(item.food_name)}</h3><span class="announcement-org">${esc(offerOrganizationLabels[item.organization_type] || item.organization_type)} · ${esc(item.organization_name)}</span></div>
@@ -36,7 +36,7 @@ async function loadOffers() {
     if (isOrganization) {
       document.getElementById('offersTitle').textContent = 'Offres des autres organisations';
       document.getElementById('offersDescription').textContent =
-        'Consultez les annonces publiées par les autres associations, hôtels et restaurants.';
+        'Consultez et réservez les annonces publiées par les autres associations, hôtels et restaurants.';
     }
     const params = new URLSearchParams(new FormData(offerFilters));
     const offers = await api('/api/announcements?' + params.toString());
@@ -60,6 +60,8 @@ offerList.addEventListener('submit', async event => {
   offerMessage.textContent = '';
   offerMessage.className = 'msg';
   const quantity = Number(new FormData(form).get('quantity'));
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
   try {
     await post(`/api/announcements/${form.dataset.id}/reservations`, {quantity});
     offerMessage.textContent = 'Réservation confirmée. La quantité disponible a été mise à jour.';
@@ -68,6 +70,8 @@ offerList.addEventListener('submit', async event => {
   } catch (error) {
     offerMessage.textContent = error.message;
     offerMessage.className = 'msg err';
+  } finally {
+    if (submitButton.isConnected) submitButton.disabled = false;
   }
 });
 

@@ -17,7 +17,7 @@ Puis ouvrir http://localhost:5000
 - À l’ouverture, choisissez « Utilisateur individuel » ou « Association / Hôtel / Restaurant », puis connectez-vous ou créez un compte.
 - Les mots de passe sont stockés sous forme hachée. Le cookie de session Flask est signé avec une clé aléatoire au démarrage; les sessions en cours sont donc invalidées après un redémarrage. Pour conserver une clé stable, définissez `FLASK_SECRET_KEY` dans l’environnement avant de lancer Docker.
 - Les aliments sont associés au compte individuel connecté. Les anciennes lignes d’aliments sont conservées lors de la mise à jour, mais restent sans propriétaire et ne sont donc pas affichées dans les nouveaux comptes.
-- Les organisations publient et gèrent leurs annonces, consultent les offres des autres organisations et voient les noms, quantités et dates des réservations de leurs propres annonces. Les utilisateurs individuels indiquent leur nom complet à l’inscription, filtrent les offres et réservent une quantité, qui est alors retirée du stock disponible.
+- Les organisations publient et gèrent leurs annonces, réservent les offres des autres organisations et voient les réservations reçues sur leurs propres annonces (nom, type d’organisation le cas échéant, quantité et date). Leur espace contient aussi la liste de leurs réservations, avec aliment, quantité, organisation, prix, date limite et lieu. Une organisation ne peut pas réserver ses propres annonces. Les utilisateurs individuels indiquent leur nom complet à l’inscription, filtrent les offres et réservent une quantité, qui est alors retirée du stock disponible.
 - Les recettes sont préchargées par la plateforme. Elles sont comparées aux aliments disponibles du compte, triées par proportion d’ingrédients présents, puis départagées selon les aliments qui expirent dans les trois jours.
 - Le démarrage de l’application ajoute les tables et colonnes manquantes à la base existante. Aucune suppression de volume n’est nécessaire.
 
@@ -32,8 +32,8 @@ docker compose up --build -d
 |---|---|---|
 | Choix du compte | `account-type.html` | Choisir le type de compte avant la connexion ou l'inscription |
 | Connexion / inscription | `auth.html` | Ouvrir un compte individuel ou organisation |
-| Espace organisation | `organization-dashboard.html` | Publier, modifier et supprimer ses annonces, consulter les réservations reçues |
-| Offres | `offers.html` | Filtrer les annonces ; les particuliers peuvent réserver et les organisations consultent les annonces des autres |
+| Espace organisation | `organization-dashboard.html` | Publier, modifier et supprimer ses annonces, consulter les réservations reçues et ses propres réservations |
+| Offres | `offers.html` | Filtrer les annonces ; les particuliers et les organisations peuvent réserver (hors annonces de leur propre organisation) |
 | Accueil | `index.html` | Présentation, aliments à consommer en priorité, chiffres (PNUE) |
 | Mes aliments | `food.html` | Ajouter un aliment, le marquer consommé / jeté, le supprimer |
 | Recettes | `recipes.html` | Comparer les 18 recettes de la plateforme avec ses aliments |
@@ -44,6 +44,8 @@ docker compose up --build -d
 - `database.sql` : tables `users`, `organizations`, `announcements`, `reservations`, `recipes`, `recipe_ingredients`, `aliment`
 - `css/style.css`, `js/*.js` : interface
 - `Dockerfile`, `docker-compose.yml` : environnement
+
+La réservation par une organisation n’exige pas de migration : la table `reservations` enregistre déjà l’identifiant du compte `users`, quel que soit son rôle. La vérification du stock et sa diminution sont réalisées sous verrou dans la même transaction.
 
 Les anciennes tables `recette` et `ingredient` sont conservées pour ne pas supprimer de données, mais l’interface utilise désormais les recettes préchargées de la plateforme.
 

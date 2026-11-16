@@ -1,5 +1,6 @@
 const announcementForm = document.getElementById('announcementForm');
 const announcementList = document.getElementById('announcementList');
+const myReservationsList = document.getElementById('myReservationsList');
 const announcementMessage = document.getElementById('announcementMessage');
 const announcementCount = document.getElementById('announcementCount');
 const submitAnnouncement = document.getElementById('submitAnnouncement');
@@ -35,12 +36,32 @@ function renderAnnouncement(item) {
       <h4>Réservations</h4>
       ${reservations.length ? `<ul class="reservation-list">${reservations.map(reservation => `
         <li><strong>${esc(reservation.reserver_name)}</strong>
+          <span>${reservation.reserver_type === 'individual'
+            ? 'Individu'
+            : `${esc(organizationLabels[reservation.reserver_type] || reservation.reserver_type)} · organisation`}</span>
           <span>Quantité : ${reservation.quantity} · ${new Date(reservation.created_at).toLocaleString('fr-FR')}</span>
         </li>`).join('')}</ul>` : '<p class="empty">Aucune réservation pour cette annonce.</p>'}
     </section>
     <div class="announcement-actions">
       <button class="btn small" type="button" data-action="edit" data-id="${item.id}">Modifier</button>
       <button class="btn danger-ghost small" type="button" data-action="delete" data-id="${item.id}">Supprimer</button>
+    </div>
+  </article>`;
+}
+
+function renderMyReservation(item) {
+  return `<article class="announcement-card">
+    <div class="announcement-heading">
+      <div><h3>${esc(item.food_name)}</h3>
+        <span class="announcement-org">${esc(organizationLabels[item.organization_type] || item.organization_type)} · ${esc(item.organization_name)}</span>
+      </div>
+    </div>
+    <div class="announcement-details">
+      <span>Quantité réservée : <strong>${item.quantity}</strong></span>
+      <span>Prix réduit : <strong>${Number(item.reduced_price).toFixed(2)} €</strong></span>
+      <span>Date limite : <strong>${formatDate(item.deadline)}</strong></span>
+      <span>Lieu : <strong>${esc(item.organization_address)}</strong></span>
+      <span>Réservé le : <strong>${new Date(item.created_at).toLocaleString('fr-FR')}</strong></span>
     </div>
   </article>`;
 }
@@ -55,6 +76,18 @@ async function loadAnnouncements() {
       : '<p class="empty">Vous n’avez pas encore publié d’annonce.</p>';
   } catch (error) {
     announcementList.innerHTML = `<p class="empty">${esc(error.message)}</p>`;
+  }
+}
+
+async function loadMyReservations() {
+  myReservationsList.innerHTML = '<p class="empty">Chargement de vos réservations…</p>';
+  try {
+    const items = await api('/api/organization/reservations');
+    myReservationsList.innerHTML = items.length
+      ? items.map(renderMyReservation).join('')
+      : '<p class="empty">Vous n’avez pas encore réservé d’annonce.</p>';
+  } catch (error) {
+    myReservationsList.innerHTML = `<p class="empty">${esc(error.message)}</p>`;
   }
 }
 
@@ -135,3 +168,4 @@ announcementList.addEventListener('click', async event => {
 });
 
 loadAnnouncements();
+loadMyReservations();

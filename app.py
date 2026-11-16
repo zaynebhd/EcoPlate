@@ -538,11 +538,15 @@ def organization_announcements():
         # Le filtre par organisation empêche de révéler les réservations d'autrui.
         cur.execute("""
             SELECT r.announcement_id,
-                   COALESCE(NULLIF(u.full_name, ''), u.email) AS reserver_name,
+                   COALESCE(NULLIF(reserver_org.name, ''), NULLIF(u.full_name, ''),
+                            'Utilisateur individuel') AS reserver_name,
+                   CASE WHEN reserver_org.id IS NULL THEN 'individual'
+                        ELSE reserver_org.organization_type END AS reserver_type,
                    r.quantity, r.created_at
             FROM reservations r
             JOIN announcements a ON a.id=r.announcement_id
             JOIN users u ON u.id=r.user_id
+            LEFT JOIN organizations reserver_org ON reserver_org.user_id=u.id
             WHERE a.organization_id=%s
             ORDER BY r.created_at DESC
         """, (organization_id,))
@@ -552,12 +556,36 @@ def organization_announcements():
         reservation['created_at'] = reservation['created_at'].isoformat()
         reservations_by_announcement.setdefault(reservation['announcement_id'], []).append({
             'reserver_name': reservation['reserver_name'],
+            'reserver_type': reservation['reserver_type'],
             'quantity': reservation['quantity'],
             'created_at': reservation['created_at'],
         })
     for row in rows:
         row['reservations'] = reservations_by_announcement.get(row['id'], [])
     return jsonify([serialize_announcement(row) for row in rows])
+
+
+@app.route('/api/organization/reservations', methods=['GET'])
+@role_required('organization')
+def organization_reservations():
+    """Liste uniquement les réservations effectuées par l’organisation connectée."""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT r.quantity, r.created_at, a.food_name, a.reduced_price, a.deadline,
+                   o.name AS organization_name, o.organization_type,
+                   o.address AS organization_address
+            FROM reservations r
+            JOIN announcements a ON a.id=r.announcement_id
+            JOIN organizations o ON o.id=a.organization_id
+            WHERE r.user_id=%s AND o.user_id<>%s
+            ORDER BY r.created_at DESC
+        """, (current_user()['id'], current_user()['id']))
+        rows = cur.fetchall()
+    for row in rows:
+        row['reduced_price'] = format(row['reduced_price'], '.2f')
+        row['deadline'] = row['deadline'].isoformat()
+        row['created_at'] = row['created_at'].isoformat()
+    return jsonify(rows)
 
 
 @app.route('/api/organization/announcements', methods=['POST'])
@@ -668,8 +696,11 @@ def available_announcements():
 
 
 @app.route('/api/announcements/<int:announcement_id>/reservations', methods=['POST'])
-@role_required('individual')
+@login_required
 def reserve_announcement(announcement_id):
+    """Permet aux deux rôles de réserver, sauf à l’organisation qui publie."""
+    if current_user()['role'] not in ('individual', 'organization'):
+        return jsonify(error='Vous n’avez pas accès à cette fonction.'), 403
     data = request.get_json(silent=True)
     quantity_value = data.get('quantity') if isinstance(data, dict) else None
     if isinstance(quantity_value, bool):
@@ -684,14 +715,19 @@ def reserve_announcement(announcement_id):
         return jsonify(error='La quantité réservée doit être un nombre positif.'), 400
 
     with get_conn() as conn, conn.cursor() as cur:
-        # Le verrou garantit que deux réservations simultanées ne dépassent pas le stock.
+        # Le verrou protège à la fois le stock et le contrôle de l’organisation propriétaire.
         cur.execute(
-            "SELECT quantity_available, deadline < CURDATE() AS expired "
-            "FROM announcements WHERE id=%s FOR UPDATE",
+            "SELECT a.quantity_available, a.organization_id, o.user_id AS owner_user_id, "
+            "deadline < CURDATE() AS expired "
+            "FROM announcements a JOIN organizations o ON o.id=a.organization_id "
+            "WHERE a.id=%s FOR UPDATE",
             (announcement_id,))
         announcement = cur.fetchone()
         if not announcement:
             return jsonify(error='Annonce introuvable.'), 404
+        if (current_user()['role'] == 'organization'
+                and announcement['owner_user_id'] == current_user()['id']):
+            return jsonify(error='Vous ne pouvez pas réserver vos propres annonces.'), 403
         if announcement['quantity_available'] == 0:
             return jsonify(error='Cette annonce est épuisée.'), 409
         if announcement['expired']:
